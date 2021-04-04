@@ -2,6 +2,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:push_notification_flutter/screens/first_screen.dart';
+import 'package:push_notification_flutter/screens/second_screen.dart';
 
 
 
@@ -59,7 +61,12 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      routes: {
+        '/home': (context) => MyHomePage(),
+        '/firstScreen': (context) => FirstScreen(),
+        '/secondScreen': (context) => SecondScreen(),
+      },
+      home: MyHomePage(title: 'Push notification Demo Home Page'),
     );
   }
 }
@@ -116,8 +123,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print('A new onMessageOpenedApp event was published!');
-     // Navigator.pushNamed(context, '/message',
-          //arguments: MessageArguments(message, true));
+      print('message: ${message.data['screen']}');
+      Navigator.pushNamed(context, '${message.data['screen']}');
     });
   }
 
