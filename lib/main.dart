@@ -6,11 +6,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // If you're going to use other Firebase services in the background, such as Firestore,
-  // make sure you call `initializeApp` before using other Firebase services.
   await Firebase.initializeApp();
   print('Handling a background message ${message.messageId}');
-
 }
 
 /// Create a [AndroidNotificationChannel] for heads up notifications
@@ -78,23 +75,26 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  String notificationTitle;
+  String notificationBody;
+  FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+
+  _registerOnFirebase() {
+    _firebaseMessaging.subscribeToTopic('all');
+    _firebaseMessaging.getToken().then((token) => print("user token id: $token"));
+  }
 
   @override
   void initState() {
     super.initState();
-
-    /*FirebaseMessaging.instance
-        .getInitialMessage()
-        .then((RemoteMessage message) {
-      if (message != null) {
-        Navigator.pushNamed(context, '/message',
-            arguments: MessageArguments(message, true));
-      }
-    });*/
+    _registerOnFirebase();
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification notification = message.notification;
+      setState(() {
+        notificationTitle = notification.title;
+        notificationBody = notification.body;
+      });
       AndroidNotification android = message.notification?.android;
       if (notification != null && android != null) {
         flutterLocalNotificationsPlugin.show(
@@ -121,11 +121,6 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -142,19 +137,14 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Text(
-              'You have pushed the button this many times:',
+              'Notification Title: $notificationTitle',
             ),
             Text(
-              '$_counter',
+              'Notification Body: $notificationBody',
               style: Theme.of(context).textTheme.headline4,
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
