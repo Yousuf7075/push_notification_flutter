@@ -2,10 +2,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:push_notification_flutter/local_notification_service.dart';
 import 'package:push_notification_flutter/screens/first_screen.dart';
 import 'package:push_notification_flutter/screens/second_screen.dart';
-
-
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -22,7 +21,7 @@ const AndroidNotificationChannel channel = AndroidNotificationChannel(
 
 /// Initialize the [FlutterLocalNotificationsPlugin] package.
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
+    FlutterLocalNotificationsPlugin();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,7 +36,7 @@ void main() async {
   /// default FCM channel to enable heads up notifications.
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 
   /// Update the iOS foreground notification presentation options to allow
@@ -75,8 +74,6 @@ class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
   final String title;
 
-
-
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
@@ -88,7 +85,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   _registerOnFirebase() {
     _firebaseMessaging.subscribeToTopic('all');
-    _firebaseMessaging.getToken().then((token) => print("user token id: $token"));
+    _firebaseMessaging
+        .getToken()
+        .then((token) => print("user token id: $token"));
   }
 
   @override
@@ -96,51 +95,56 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     _registerOnFirebase();
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      RemoteNotification notification = message.notification;
-      setState(() {
-        notificationTitle = notification.title;
-        notificationBody = notification.body;
-      });
-      AndroidNotification android = message.notification?.android;
-      if (notification != null && android != null) {
-        flutterLocalNotificationsPlugin.show(
-            notification.hashCode,
-            notification.title,
-            notification.body,
-            NotificationDetails(
-              android: AndroidNotificationDetails(
-                channel.id,
-                channel.name,
-                channel.description,
-                // TODO add a proper drawable resource to android, for now using
-                //      one that already exists in example app.
-                icon: 'launch_background',
-              ),
-            ));
+    LocalNotificationService.initialize(context);
+
+    ///gives you the message on which user taps
+    ///and it opened the app from terminated state
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) {
+        print("product slug-> ${message.data['productSlug']}");
+        String routeName = "${message.data['routeKey']}";
+        notificationTap(routeName);
       }
     });
 
+    ///fore ground work
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('A new onMessage event was published!');
+      RemoteNotification notification = message.notification;
+      AndroidNotification android = message.notification?.android;
+      LocalNotificationService.display(message);
+    });
+
+    ///back ground work
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print('A new onMessageOpenedApp event was published!');
-      print('message: ${message.data['screen']}');
-      Navigator.pushNamed(context, '${message.data['screen']}');
+      String routeName = "${message.data['routeKey']}";
+      print('route key-> $routeName');
+      print("product slug-> ${message.data['productSlug']}");
+      notificationTap(routeName);
     });
   }
 
+  void notificationTap(String routeKey) {
+    switch (routeKey) {
+      case '/firstScreen':
+        Navigator.pushNamed(context, "/firstScreen");
+        break;
+      case '/secondScreen':
+        Navigator.pushNamed(context, "/secondScreen");
+        break;
+      default:
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
-
         title: Text(widget.title),
       ),
       body: Center(
-
         child: Column(
-
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Text(
